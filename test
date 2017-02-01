@@ -13,4 +13,8 @@ name="another" class="one"
 name="simple"
 	yep
 
-
+instance="1aa\"fsd" class="2" type="combo" name="3" role="4"
+	t\
+		e\
+		x\
+		t

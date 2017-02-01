@@ -9,7 +9,7 @@ static void skip_blank(void);
 %}
 
 %%
-("class"|"name")                  yylval = strdup(yytext); return CRITERION;
+("class"|"instance"|"type"|"name"|"role")                  yylval = strdup(yytext); return CRITERION;
 =                                 return EQUALS;
 \"([^\"\\]*(\\.[^\"\\]*)*)\"      yylval = strdup(yytext); return STRING;
 ^[ \t]+([^\r\n\t\f ](([^\n\\])|(\\(.|\n)))+)  yylval=strdup(yytext); return COMMAND;

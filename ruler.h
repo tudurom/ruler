@@ -1,6 +1,10 @@
 #ifndef __RULER_H
 #define __RULER_H
 
+#ifndef _POSIX_C_SOURCE
+#define _POSIX_C_SOURCE
+#endif
+
 typedef char * command_t;
 
 struct descriptor {

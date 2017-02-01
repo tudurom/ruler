@@ -14,32 +14,25 @@ windows with a specific name/class are created. For example, all windows in the
 ```
 DESCRIPTOR
 	[;]COMMAND
+
+DESCRIPTOR := CRITERION_1=STRING_1 CRITERION_2=STRING_2 ...
+CRITERION_i := class | instance | type | name | role
 ```
 
-```
-block = descriptor, "\n", command
-      | descriptor, "\n", command, "\n", block;
-descriptor = var
-           | var, white space, descriptor;
-command = all characters
-        | ";", all characters;
-var = criterion, "=", value;
-value = '"', {all characters - '"'}, '"';
-criterion = "class" | "instance" | "type" | "title" | "role";
-all characters = ? all printable characters ? ;
-```
+`STRING_i` is any string enclosed between double quotes (`"`).
 
-`value` and `command` can contain escaped characters, preceded by a `\`.
+`STRING_i` and `COMMAND` can contain escaped characters, preceded by a `\`. You
+can have multi-line commands this way.
 
-`value` can be a regular expression (POSIX extended regular expression).
+`STRING_i` can be a regular expression (POSIX extended regular expression).
 
-If `command` is preceded by a `;`, the command will be run synchronously,
+If `COMMAND` is preceded by a `;`, the command will be run synchronously,
 otherwise it will be run asynchronously.
 
-`command` will be executed by the shell set in the `SHELL` environment
+`COMMAND` will be executed by the shell set in the `SHELL` environment
 variable. The window id will be set in the `RULER_ID` environment variable.
 
-`criterion` can be:
+`CRITERION` can be:
 
 * `class` - the second part of `WM_CLASS` window property.
 * `instance` - the first part of `WM_CLASS` window property.
@@ -47,7 +40,7 @@ variable. The window id will be set in the `RULER_ID` environment variable.
 	`desktop`, `dock`, `toolbar`, `menu`, `utility`, `splash`, `dialog`,
 	`dropdown_menu`, `popup_menu`, `tooltip`, `notification`, `combo`, `dnd`,
 	`normal`.
-* `title` - the X11 window title (`_NET_WM_NAME` and `WM_NAME` properties, the
+* `name` - the X11 window title (`_NET_WM_NAME` and `WM_NAME` properties, the
 	latter used as a fallback).
 * `role` - window role (`WM_WINDOW_ROLE` property)
 
