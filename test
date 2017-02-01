@@ -1,0 +1,16 @@
+# with
+# 		comment #wew
+name="cat" class="dog"name="wow" 		name="whitespace" # in line
+	echo "this is not a test\
+really"\
+> $NOTIFY_FIFO_PATH
+
+name="another" class="one"
+	hurray
+
+    	
+
+name="simple"
+	yep
+
+

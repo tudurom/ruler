@@ -1,0 +1,4 @@
+lex.yy.c
+y.tab.h
+y.tab.c
+ruler
