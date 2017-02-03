@@ -1,9 +1,10 @@
 NAME = ruler
 
 CFLAGS += -Wall -g
+LDFLAGS += -lxcb -lxcb-icccm -lxcb-ewmh -lwm
 
 ruler: ruler.c parser scanner
-	clang *.c -o ruler
+	clang *.c $(CFLAGS) $(LDFLAGS) -o ruler
 
 parser: parser.y
 	yacc parser.y

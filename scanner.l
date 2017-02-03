@@ -17,6 +17,7 @@ static void skip_blank(void);
 [[:space:]]                       skip_blank();
 <<EOF>>                           return END;
 "#".* skip_comment();
+. { fprintf(stderr, "Ignoring unexpected character '%c'\n", *yytext); }
 %%
 
 static void

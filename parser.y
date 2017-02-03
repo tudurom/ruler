@@ -39,7 +39,7 @@ command: COMMAND
 
 descriptor: CRITERION EQUALS STRING
 		  {
-		  	desc($1, strip_quotes($3));
+		  	desc($1, $3);
 		  }
 		  ;
 %%
