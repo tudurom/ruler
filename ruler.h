@@ -11,6 +11,10 @@
 #define ATOM_WM_ROLE "WM_WINDOW_ROLE"
 #define WINDOW_TYPE_STRING_LENGTH 110
 #define REGEX_FLAGS REG_EXTENDED | REG_NOSUB
+#define ENV_VARIABLE "RULER_WID"
+#define DEBUG 0
+
+#define DMSG(fmt, ...) if (_debug) { fprintf(stderr, fmt, ##__VA_ARGS__); }
 
 typedef char * command_t;
 
@@ -48,10 +52,18 @@ struct win_props {
 	char *role;
 };
 
+struct conf {
+	int case_insensitive;
+	char *shell;
+	int catch_override_redirect;
+	int exec_on_prop_change;
+};
+
 void yyerror(const char *);
 int yywrap(void);
 int yylex(void);
 int yyparse(void);
+void yyrestart(FILE *);
 
 void print_usage(const char *);
 char * strip_quotes(char *);
@@ -82,11 +94,20 @@ char * get_string_prop(xcb_window_t, xcb_atom_t, int);
 
 struct win_props * get_props(xcb_window_t);
 int match_props(struct win_props *, struct list *);
-struct block * find_matching_block(struct win_props *, struct list *);
+void find_matching_blocks(struct win_props *, struct list *, struct list **);
+
+void execute(char **);
+void spawn(char *, command_t);
+void run_command(char *shell, command_t, int);
+
+void execute_matching_block(struct win_props *, struct list *);
 
 void register_events(void);
+void set_environ(xcb_window_t);
 void handle_events(void);
 
 void cleanup(void);
+
+void init_conf(void);
 
 #endif

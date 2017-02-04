@@ -1,7 +1,8 @@
 # with
 # 		comment #wew
-class="URxvt"
-	test3
-
 role="browser"
-	test2
+	wtf "$WID" && waitron group_add_window 2
+
+# match all
+name=".*"
+	echo "created window with id $RULER_WID"

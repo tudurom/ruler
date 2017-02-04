@@ -14,7 +14,7 @@ static void skip_blank(void);
 \"([^\"\\]*(\\.[^\"\\]*)*)\"      yylval = strdup(yytext); return STRING;
 ^[ \t]+([^\r\n\t\f ](([^\n\\])|(\\(.|\n)))+)  yylval=strdup(yytext); return COMMAND;
 \n                                return NEWLINE;
-[[:space:]]                       skip_blank();
+[[:blank:]]                       skip_blank();
 <<EOF>>                           return END;
 "#".* skip_comment();
 . { fprintf(stderr, "Ignoring unexpected character '%c'\n", *yytext); }
@@ -39,7 +39,7 @@ skip_blank(void)
 	int c;
 
 	c = input();
-	while (isspace(c) && c != EOF)
+	while (isblank(c) && c != EOF)
 		c = input();
 
 	unput(c);

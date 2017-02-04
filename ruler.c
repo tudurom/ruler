@@ -4,18 +4,29 @@
 #include <stdlib.h>
 #include <string.h>
 #include <regex.h>
+#include <unistd.h>
 
+#include <sys/wait.h>
 #include <xcb/xcb.h>
 #include <xcb/xcb_icccm.h>
 #include <xcb/xcb_ewmh.h>
 #include <wm.h>
 
+#include "arg.h"
 #include "ruler.h"
 
 extern FILE * yyin;
+
 struct list *last_d = NULL;
 struct list *block_list = NULL;
+
 command_t last_c;
+extern char **environ;
+
+const int _debug = DEBUG;
+struct conf conf;
+
+char *argv0;
 
 xcb_connection_t *conn;
 xcb_screen_t *scrn;
@@ -24,7 +35,7 @@ xcb_ewmh_connection_t *ewmh;
 void
 print_usage(const char *program_name)
 {
-	fprintf(stderr, "Usage: %s <filename>\n", program_name);
+	fprintf(stderr, "Usage: %s [-hiops] filename [filename...]\n", program_name);
 	exit(1);
 }
 
@@ -69,10 +80,10 @@ new_descriptor(char *criterion, char *str)
 	d->str = str;
 	d->reg = malloc(sizeof(regex_t));
 
-	fprintf(stderr, "new regex from `%s`\n", str);
-	status = regcomp(d->reg, str, REGEX_FLAGS);
+	DMSG("new regex from `%s`\n", str);
+	status = regcomp(d->reg, str, REGEX_FLAGS | (conf.case_insensitive * REG_ICASE));
 	if (status != 0) {
-		warnx("couldn't compile regex for %s=\"%s\"", criterion, str);
+		warnx("couldn't compile regex for %s=\"%s\". Check your regex.", criterion, str);
 		regfree(d->reg);
 		free(d->reg);
 		d->reg = NULL;
@@ -248,7 +259,7 @@ free_win_props(struct win_props *p)
 void
 print_win_props(struct win_props *p)
 {
-	fprintf(stderr, "name: \"%s\"\tclass: \"%s\"\tinstance: \"%s\"\ttype: \"%s\"\trole: \"%s\"\n", p->name,
+	DMSG("name: \"%s\"\tclass: \"%s\"\tinstance: \"%s\"\ttype: \"%s\"\trole: \"%s\"\n", p->name,
 			p->class, p->instance, p->type, p->role);
 }
 
@@ -359,21 +370,22 @@ get_string_prop(xcb_window_t win, xcb_atom_t prop, int utf8)
 
 	if (r == NULL || xcb_get_property_value_length(r) == 0) {
 		p = strdup("");
-		warnx("unable to get window property for 0x%08x", win);
+		DMSG("unable to get window property for 0x%08x\n", win);
 	} else {
 		len = xcb_get_property_value_length(r);
 		p = malloc((len + 1) * sizeof(char));
 		value = xcb_get_property_value(r);
 		strncpy(p, value, len);
 		p[len] = '\0';
-		if (utf8)
-			fprintf(stderr, "got utf8 prop\n");
 	}
 	free(r);
 
 	return p;
 }
 
+/*
+ * Fill win_props structure.
+ */
 struct win_props *
 get_props(xcb_window_t win)
 {
@@ -452,7 +464,7 @@ match_props(struct win_props *p, struct list *l)
 			status = regexec(d->reg, to_match, 0, NULL, 0);
 		else
 			status = 1;
-		printf("match %s (%s): %d\n", to_match, criterion_to_string(d->criterion), status);
+		DMSG("match %s (%s): %d\n", to_match, criterion_to_string(d->criterion), status);
 		matched += (status == 0) * 1;
 
 		node = node->next;
@@ -462,34 +474,147 @@ match_props(struct win_props *p, struct list *l)
 }
 
 /*
- * Find matches of win_props with descriptor_lists in a list of blocks.
- *
- * That is, find the block that matches best with a window.
+ * Find matching blocks for a window and put them in the `blocks` list.
  */
-struct block *
-find_matching_block(struct win_props *p, struct list *l)
+void
+find_matching_blocks(struct win_props *p, struct list *l, struct list **blocks)
 {
 	struct list *node;
-	int max_descriptors, descs;
-	struct block *block = NULL;
+	int m;
 
-	max_descriptors = 0;
+	if (*blocks != NULL)
+		list_free(blocks);
+
 	for (node = l; node != NULL; node = node->next) {
 		struct block *b = node->n;
 		struct list *desc_list = b->d;
-		fprintf(stderr, "trying new block\n");
-		descs = match_props(p, desc_list);
-		if (descs > max_descriptors) {
-			max_descriptors = descs;
-			block = b;
-			fprintf(stderr, "new maximum\n");
+		DMSG("trying new block\n");
+		m = match_props(p, desc_list);
+		if (m > 0) {
+			list_add(blocks, b);
 		}
 	}
+}
 
-	if (block != NULL)
-		fprintf(stderr, "will execute: `%s`\n", block->c);
+/*
+ * Execute program with arguments.
+ *
+ * cmd is an array of strings representing the
+ * executable and the arguments. The last element
+ * of cmd must be NULL.
+ *
+ * This function should be called in a separate process,
+ * otherwise the execution of the caller process ends.
+ *
+ * See execvp(3).
+ */
+void
+execute(char **cmd)
+{
+	setsid();
+	execvp(cmd[0], cmd);
+	err(1, "command execution failed");
+}
 
-	return block;
+/*
+ * Pipe command to shell.
+ *
+ * Creates two subprocesses.
+ * The first prints to stdout the command.
+ * The second is the shell that interprets the command.
+ */
+void
+spawn(char *shell, command_t cmd)
+{
+	int desc[2];
+	if (pipe(desc) == -1) {
+		warnx("pipe failed");
+		return;
+	}
+
+	if (fork() == 0) {
+		close(STDOUT_FILENO);
+		dup(desc[1]);
+		close(desc[0]);
+		close(desc[1]);
+
+		fputs(cmd, stdout);
+		exit(0);
+	}
+
+	if (fork() == 0) {
+		close(STDIN_FILENO);
+		dup(desc[0]);
+		close(desc[1]);
+		close(desc[0]);
+
+		char *toexec[] = { shell, NULL };
+		execute(toexec);
+	}
+
+	close(desc[0]);
+	close(desc[1]);
+	wait(NULL);
+	wait(NULL);
+}
+
+/*
+ * Run command in the given shell.
+ */
+void run_command(char *shell, command_t cmd, int sync)
+{
+	DMSG("will execute: `%s`\n", cmd);
+
+	if (sync) {
+		spawn(shell, cmd);
+	} else {
+		/* don't let children become a zombie. kill it for real (bwahaha) */
+		signal(SIGCHLD, SIG_IGN);
+		if (fork() == 0) {
+			if (conn != NULL)
+				close(xcb_get_file_descriptor(conn));
+			spawn(shell, cmd);
+			exit(0);
+		}
+	}
+}
+
+/*
+ * Find matching block for a window and execute the command.
+ */
+void
+execute_matching_block(struct win_props *props, struct list *blocks)
+{
+	struct list *matching_blocks = NULL, *node;
+	struct block *b;
+	char chr;
+	int i, skip, sync;
+
+	find_matching_blocks(props, blocks, &matching_blocks);
+	if (matching_blocks != NULL) {
+		for (node = matching_blocks; node != NULL; node = node->next) {
+			b = node->n;
+			i = 0;
+			while ((chr = b->c[i]) != '\0' && isblank(chr))
+				i++;
+
+			if (chr == '\0') {
+				warnx("either the supplied file is strange "
+						"or this is a bug and you should report it ASAP "
+						"(%s: line %d", __FILE__, __LINE__);
+				return;
+			}
+
+			sync = 0;
+			skip = i;
+			if (chr == ';') {
+				sync = 1;
+				skip++;
+			}
+			run_command(conf.shell, b->c + skip, sync);
+		}
+		list_free(&matching_blocks);
+	}
 }
 
 /*
@@ -509,6 +634,14 @@ register_events(void)
 	free(windows);
 }
 
+void
+set_environ(xcb_window_t win)
+{
+	char *wid = malloc((2 + 8 + 1) * sizeof(char));
+	sprintf(wid, "0x%08x", win);
+	setenv(ENV_VARIABLE, wid, 1);
+}
+
 /*
  * Handle X events.
  */
@@ -525,24 +658,28 @@ handle_events(void)
 
 	for (;;) {
 		ev = xcb_wait_for_event(conn);
+		win = -1;
 		if ((ev->response_type & ~0x80) == XCB_MAP_NOTIFY) {
 			xcb_map_notify_event_t *ec = (xcb_map_notify_event_t *)ev;
-			if (wm_is_listable(ec->window, 0)) {
-				p = get_props(ec->window);
-				print_win_props(p);
-				find_matching_block(p, block_list);
-				free_win_props(p);
+			if (conf.catch_override_redirect || wm_is_listable(ec->window, 0)) {
+				win = ec->window;
 				/* we need to get notified for further property changes */
-				wm_reg_event(ec->window, XCB_EVENT_MASK_PROPERTY_CHANGE);
+				if (conf.exec_on_prop_change) {
+					wm_reg_event(ec->window, XCB_EVENT_MASK_PROPERTY_CHANGE);
+				}
 			}
-		} else if ((ev->response_type & ~0x80) == XCB_PROPERTY_NOTIFY) {
+		} else if (conf.exec_on_prop_change && (ev->response_type & ~0x80) == XCB_PROPERTY_NOTIFY) {
 			xcb_property_notify_event_t *en = (xcb_property_notify_event_t *)ev;
-			if (wm_is_listable(en->window, 0)) {
-				p = get_props(en->window);
-				print_win_props(p);
-				find_matching_block(p, block_list);
-				free_win_props(p);
-			}
+			if (conf.catch_override_redirect || wm_is_listable(en->window, 0))
+				win = en->window;
+		}
+
+		if (win != -1) {
+			p = get_props(win);
+			print_win_props(p);
+			set_environ(win);
+			execute_matching_block(p, block_list);
+			free_win_props(p);
 		}
 	}
 
@@ -559,15 +696,45 @@ cleanup(void)
 	}
 }
 
+void
+init_conf(void)
+{
+	conf.case_insensitive = 0;
+	conf.shell = getenv("SHELL");
+	conf.catch_override_redirect = 0;
+	conf.exec_on_prop_change = 0;
+}
+
 int
 main(int argc, char **argv)
 {
 	if (argc == 1)
 		print_usage(argv[0]);
-	yyin = fopen(argv[1], "r");
-	if (yyin == NULL)
-		err(1, "couldn't open file");
-	yyparse();
+
+	init_conf();
+	ARGBEGIN {
+		case 'i':
+			conf.case_insensitive = 1; break;
+		case 's':
+			conf.shell = EARGF(print_usage(argv0)); break;
+		case 'o':
+			conf.catch_override_redirect = 1; break;
+		case 'p':
+			conf.exec_on_prop_change = 1; break;
+		case 'h':
+			print_usage(argv0);
+	} ARGEND
+
+	/* the remaining arguments should be files */
+	while (*argv) {
+		yyin = fopen(*argv, "r");
+		if (yyin == NULL)
+			err(1, "couldn't open file");
+		yyparse();
+		fclose(yyin);
+		yyrestart(yyin);
+		argv++;
+	}
 
 	if (wm_init_xcb() == 0)
 		errx(1, "error while estabilishing connection to the X server");
@@ -575,17 +742,19 @@ main(int argc, char **argv)
 		errx(1, "couldn't get X screen");
 	init_ewmh();
 
-	struct list *l;
-	for (l = block_list; l != NULL; l = l->next) {
-		struct block *b = l->n;
-		struct list *ld;
-		for (ld = b->d; ld != NULL; ld = ld->next) {
-			struct descriptor *d = ld->n;
-			char *c = criterion_to_string(d->criterion);
-			printf("%s = \"%s\" ", c, d->str);
-			free(c);
+	if (_debug) {
+		struct list *l;
+		for (l = block_list; l != NULL; l = l->next) {
+			struct block *b = l->n;
+			struct list *ld;
+			for (ld = b->d; ld != NULL; ld = ld->next) {
+				struct descriptor *d = ld->n;
+				char *c = criterion_to_string(d->criterion);
+				DMSG("%s = \"%s\" ", c, d->str);
+				free(c);
+			}
+			DMSG("\n`%s`\n", b->c);
 		}
-		printf("\n`%s`\n", b->c);
 	}
 
 	register_events();

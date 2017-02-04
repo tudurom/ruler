@@ -1,0 +1,57 @@
+.Dd February 4, 2017
+.Dt RULER 1
+.Os ruler
+.Sh NAME
+.Nm ruler
+.Nd window rule daemon
+.Sh SYNOPSIS
+.Nm ruler
+.Op Fl hiop
+.Op Fl s Ar shell
+.Ar filename Op Ar filename...
+.Sh DESCRIPTION
+.Nm
+is a program that applies window rules on newly created windows.
+Each time a newly created window is created, it finds one or more rules that match
+the window's properties (name, class, instance name, role, type) and executes the rules' commands.
+.Sh OPTIONS
+.Bl -tag -width Ds
+.It Fl h
+Print the usage to stderr and exit.
+.It Fl i
+Do not differentiate case in rules.
+.It Fl o
+Also apply rules on windows with
+.Em override_redirect
+set (ignored windows).
+.It Fl p
+Apply rules whenever a window changes one of its properties.
+Warning: it triggers a lot!
+.It Fl s Ar shell
+Execute rules' commands in shell defined by
+.Ar shell .
+.El
+.Sh BEHAVIOR
+.Nm
+is a daemon that listens to window mapping notifications to execute commands based on
+given rules.
+.Pp
+It reads its configuration file from $XDG_CONFIG_HOME/ruler/rulerrc by default,
+or from one or more files given as arguments.
+.Pp
+If
+.Nm
+receives a SIGUSR1, it will reload its configuration files.
+.Pp
+Rule commands are piped to the shell. The default shell is defined in the
+.Ev SHELL
+environment variable.
+.Sh ENVIRONMENT
+.Nm
+acts on the X display specified by the
+.Ev DISPLAY
+variable.
+.Sh CONFIGURATION
+TO DO
+.Sh SEE ALSO
+.Xr sxhkd 1

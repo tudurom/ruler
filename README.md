@@ -1,13 +1,11 @@
 ruler
 =====
 
-Design Document
----------------
-
-ruler is a program for creating window "rules" like in other window managers.
-The users writes the rules in a config file. The program executes commands when
-windows with a specific name/class are created. For example, all windows in the
-`Firefox` class can be moved to workspace 2 with a command.
+ruler is a program for creating window "rules" like in some window managers like
+`i3` or `bspwm`.
+The user writes the rules in a config file. The program executes commands when
+windows with a specific set of properties are created. For example, all windows in the
+`Firefox` class or with the `browser` role can be moved to workspace 2 with a command.
 
 ### Config file syntax
 
@@ -46,9 +44,11 @@ variable. The window id will be set in the `RULER_ID` environment variable.
 
 ### Example
 
+Assign all browsers to group 2.
+
 ```
 role="browser"
-	waitron group_add_window 2
+	wtf "$RULER_WID" && waitron group_add_window 2
 ```
 
 Implementation details
