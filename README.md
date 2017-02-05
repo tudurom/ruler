@@ -33,13 +33,18 @@ variable. The window id will be set in the `RULER_ID` environment variable.
 `CRITERION` can be:
 
 * `class` - the second part of `WM_CLASS` window property.
+
 * `instance` - the first part of `WM_CLASS` window property.
-* `type` - the `_NET_WM_WINDOW_TYPE` window property. `VALUE` can be
+
+* `type` - the `_NET_WM_WINDOW_TYPE` window property. `VALUE` can be a
+combination of
 	`desktop`, `dock`, `toolbar`, `menu`, `utility`, `splash`, `dialog`,
 	`dropdown_menu`, `popup_menu`, `tooltip`, `notification`, `combo`, `dnd`,
-	`normal`.
+	`normal`, separated by commas. Example value: `combo,dnd`.
+
 * `name` - the X11 window title (`_NET_WM_NAME` and `WM_NAME` properties, the
 	latter used as a fallback).
+
 * `role` - window role (`WM_WINDOW_ROLE` property)
 
 ### Example

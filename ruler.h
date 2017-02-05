@@ -12,7 +12,7 @@
 #define WINDOW_TYPE_STRING_LENGTH 110
 #define REGEX_FLAGS REG_EXTENDED | REG_NOSUB
 #define ENV_VARIABLE "RULER_WID"
-#define DEBUG 0
+#define DEBUG 1
 
 #define DMSG(fmt, ...) if (_debug) { fprintf(stderr, fmt, ##__VA_ARGS__); }
 
@@ -109,5 +109,8 @@ void handle_events(void);
 void cleanup(void);
 
 void init_conf(void);
+
+void handle_sig(int);
+void reload_config(void);
 
 #endif

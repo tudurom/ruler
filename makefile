@@ -1,6 +1,6 @@
 NAME = ruler
 
-CFLAGS += -Wall -O2
+CFLAGS += -Wall -g
 LDFLAGS += -lxcb -lxcb-icccm -lxcb-ewmh -lwm
 
 ruler: ruler.c parser scanner

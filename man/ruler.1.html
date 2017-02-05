@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv='content-type' value='text/html;charset=utf8'>
+  <meta name='generator' value='Ronn/v0.7.3 (http://github.com/rtomayko/ronn/tree/0.7.3)'>
+  <title>ruler(1) - A window rule daemon</title>
+  <style type='text/css' media='all'>
+  /* style: man */
+  body#manpage {margin:0}
+  .mp {max-width:100ex;padding:0 9ex 1ex 4ex}
+  .mp p,.mp pre,.mp ul,.mp ol,.mp dl {margin:0 0 20px 0}
+  .mp h2 {margin:10px 0 0 0}
+  .mp > p,.mp > pre,.mp > ul,.mp > ol,.mp > dl {margin-left:8ex}
+  .mp h3 {margin:0 0 0 4ex}
+  .mp dt {margin:0;clear:left}
+  .mp dt.flush {float:left;width:8ex}
+  .mp dd {margin:0 0 0 9ex}
+  .mp h1,.mp h2,.mp h3,.mp h4 {clear:left}
+  .mp pre {margin-bottom:20px}
+  .mp pre+h2,.mp pre+h3 {margin-top:22px}
+  .mp h2+pre,.mp h3+pre {margin-top:5px}
+  .mp img {display:block;margin:auto}
+  .mp h1.man-title {display:none}
+  .mp,.mp code,.mp pre,.mp tt,.mp kbd,.mp samp,.mp h3,.mp h4 {font-family:monospace;font-size:14px;line-height:1.42857142857143}
+  .mp h2 {font-size:16px;line-height:1.25}
+  .mp h1 {font-size:20px;line-height:2}
+  .mp {text-align:justify;background:#fff}
+  .mp,.mp code,.mp pre,.mp pre code,.mp tt,.mp kbd,.mp samp {color:#131211}
+  .mp h1,.mp h2,.mp h3,.mp h4 {color:#030201}
+  .mp u {text-decoration:underline}
+  .mp code,.mp strong,.mp b {font-weight:bold;color:#131211}
+  .mp em,.mp var {font-style:italic;color:#232221;text-decoration:none}
+  .mp a,.mp a:link,.mp a:hover,.mp a code,.mp a pre,.mp a tt,.mp a kbd,.mp a samp {color:#0000ff}
+  .mp b.man-ref {font-weight:normal;color:#434241}
+  .mp pre {padding:0 4ex}
+  .mp pre code {font-weight:normal;color:#434241}
+  .mp h2+pre,h3+pre {padding-left:0}
+  ol.man-decor,ol.man-decor li {margin:3px 0 10px 0;padding:0;float:left;width:33%;list-style-type:none;text-transform:uppercase;color:#999;letter-spacing:1px}
+  ol.man-decor {width:100%}
+  ol.man-decor li.tl {text-align:left}
+  ol.man-decor li.tc {text-align:center;letter-spacing:4px}
+  ol.man-decor li.tr {text-align:right;float:right}
+  </style>
+</head>
+<!--
+  The following styles are deprecated and will be removed at some point:
+  div#man, div#man ol.man, div#man ol.head, div#man ol.man.
+
+  The .man-page, .man-decor, .man-head, .man-foot, .man-title, and
+  .man-navigation should be used instead.
+-->
+<body id='manpage'>
+  <div class='mp' id='man'>
+
+  <div class='man-navigation' style='display:none'>
+    <a href="#NAME">NAME</a>
+    <a href="#SYNOPSIS">SYNOPSIS</a>
+    <a href="#DESCRIPTION">DESCRIPTION</a>
+    <a href="#OPTIONS">OPTIONS</a>
+    <a href="#BEHAVIOR">BEHAVIOR</a>
+    <a href="#CONFIGURATION">CONFIGURATION</a>
+    <a href="#EXAMPLE">EXAMPLE</a>
+    <a href="#AUTHOR">AUTHOR</a>
+    <a href="#SEE-ALSO">SEE ALSO</a>
+  </div>
+
+  <ol class='man-decor man-head man head'>
+    <li class='tl'>ruler(1)</li>
+    <li class='tc'>Ruler Manual</li>
+    <li class='tr'>ruler(1)</li>
+  </ol>
+
+  <h2 id="NAME">NAME</h2>
+<p class="man-name">
+  <code>ruler</code> - <span class="man-whatis">A window rule daemon</span>
+</p>
+
+<h2 id="SYNOPSIS">SYNOPSIS</h2>
+
+<p><code>ruler</code> [-hiop] [-s <var>shell</var>] <var>filename</var> [<var>filename</var>...]</p>
+
+<h2 id="DESCRIPTION">DESCRIPTION</h2>
+
+<p><code>ruler</code> is an X daemon that executes arbitrary commands for windows with
+specific windows, called <em>rules</em>.</p>
+
+<h2 id="OPTIONS">OPTIONS</h2>
+
+<dl>
+<dt class="flush"><code>-h</code></dt><dd><p>  Print usage and version information.</p></dd>
+<dt class="flush"><code>-i</code></dt><dd><p>  Ignore case in rule descriptors.</p></dd>
+<dt class="flush"><code>-o</code></dt><dd><p>  Apply rules on windows with <em>override_redirect</em> set, like panels and docks.</p></dd>
+<dt class="flush"><code>-p</code></dt><dd><p>  Apply rules when windows change their properties.</p></dd>
+<dt><code>-s</code> <var>shell</var></dt><dd><p>  Execute rule commands with <var>shell</var>.</p></dd>
+</dl>
+
+
+<h2 id="BEHAVIOR">BEHAVIOR</h2>
+
+<p><code>ruler</code> is a daemon that listens to X window events and applies a set of rules
+on windows that match them. A rule is made from two parts: a descriptor, that is
+a set of properties that must match with the properties of a window, and a
+command, that is piped to an interpreter (<code>$SHELL</code> by default).</p>
+
+<p><code>ruler</code> reads its configuration file from <code>$XDG_CONFIG_HOME/ruler/rulerrc</code> by
+default, or from the command line if specified.</p>
+
+<p>If <code>ruler</code> receives <code>SIGUSR1</code> or <code>SIGUSR2</code>, it will reload the specified
+configuration files or pause rule interpreting respectively.</p>
+
+<p>Commands are executed by piping to the interpreter. (like <code>echo "COMMAND" |
+        $SHELL</code>). The chosen shell is by default <code>$SHELL</code>.</p>
+
+<h2 id="CONFIGURATION">CONFIGURATION</h2>
+
+<p>Each line of the configuration file is interpreted like so:</p>
+
+<ul>
+<li><p>If it starts with a <code>#</code>, it is ignored.</p></li>
+<li><p>If it is indented with tabs and/or spaces, it is interpreted as a command.</p></li>
+<li><p>Else, it's a descriptor.</p></li>
+</ul>
+
+
+<p>A descriptor - command pair is called a <em>block</em>. Blocks can have newlines
+between them.</p>
+
+<p>Syntax:</p>
+
+<pre><code>DESCRIPTOR
+    [;]COMMAND
+
+DESCRIPTOR := CRITERION_1=STRING_1 CRITERION_2=STRING_2 ...
+CRITERION_i := class | instance | type | name | role
+</code></pre>
+
+<p><code>STRING_i</code> is any string enclosed between double quotes (<code>"</code>).</p>
+
+<p><code>STRING_i</code> and <code>COMMAND</code> can contain escaped characters, preceded by a <code>\</code>. You
+can have multi-line commands this way.</p>
+
+<p><code>STRING_i</code> is a POSIX extended regular expression.</p>
+
+<p>If <code>COMMAND</code> is preceded by a <code>;</code>, the command will be run synchronously,
+otherwise it will be run asynchronously.</p>
+
+<p><code>COMMAND</code> will be executed by the shell set in the <code>SHELL</code> environment
+variable. The window id will be set in the <code>RULER_ID</code> environment variable.</p>
+
+<p><code>CRITERION</code> can be:</p>
+
+<ul>
+<li><p><code>class</code> - the second part of <code>WM_CLASS</code> window property.</p></li>
+<li><p><code>instance</code> - the first part of <code>WM_CLASS</code> window property.</p></li>
+<li><p><code>type</code> - the <code>_NET_WM_WINDOW_TYPE</code> window property. <code>VALUE</code> can be a
+combination of
+  <code>desktop</code>, <code>dock</code>, <code>toolbar</code>, <code>menu</code>, <code>utility</code>, <code>splash</code>, <code>dialog</code>,
+  <code>dropdown_menu</code>, <code>popup_menu</code>, <code>tooltip</code>, <code>notification</code>, <code>combo</code>, <code>dnd</code>,
+  <code>normal</code>, separated by commas.</p>
+
+<p>  Example value: <code>combo,dnd</code>.</p></li>
+<li><p><code>name</code> - the X11 window title (<code>_NET_WM_NAME</code> and <code>WM_NAME</code> properties, the
+  latter used as a fallback).</p></li>
+<li><p><code>role</code> - window role (<code>WM_WINDOW_ROLE</code> property)</p></li>
+</ul>
+
+
+<h2 id="EXAMPLE">EXAMPLE</h2>
+
+<pre><code class="c"># assign all browsers to group 2
+role="browser"
+    wtf "$RULER_WID" &amp;&amp; waitron group_add_window 2
+
+# say hello if a window is created, synchronously
+name=".*"
+    ;echo "Hello!";\
+        echo "How are you?"
+</code></pre>
+
+<h2 id="AUTHOR">AUTHOR</h2>
+
+<p>Tudor Roman <var>tudurom at gmail dot com</var></p>
+
+<h2 id="SEE-ALSO">SEE ALSO</h2>
+
+<p><span class="man-ref">wmutils<span class="s">(1)</span></span>, <span class="man-ref">regex<span class="s">(7)</span></span></p>
+
+
+  <ol class='man-decor man-foot man foot'>
+    <li class='tl'></li>
+    <li class='tc'>February 2017</li>
+    <li class='tr'>ruler(1)</li>
+  </ol>
+
+  </div>
+</body>
+</html>

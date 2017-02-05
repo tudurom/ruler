@@ -7,6 +7,7 @@
 #include <unistd.h>
 
 #include <sys/wait.h>
+#include <sys/select.h>
 #include <xcb/xcb.h>
 #include <xcb/xcb_icccm.h>
 #include <xcb/xcb_ewmh.h>
@@ -26,7 +27,11 @@ extern char **environ;
 const int _debug = DEBUG;
 struct conf conf;
 
+int state_run = 0, state_reload = 0, state_pause = 0;
+
 char *argv0;
+char **configs;
+int no_of_configs;
 
 xcb_connection_t *conn;
 xcb_screen_t *scrn;
@@ -568,8 +573,6 @@ void run_command(char *shell, command_t cmd, int sync)
 	if (sync) {
 		spawn(shell, cmd);
 	} else {
-		/* don't let children become a zombie. kill it for real (bwahaha) */
-		signal(SIGCHLD, SIG_IGN);
 		if (fork() == 0) {
 			if (conn != NULL)
 				close(xcb_get_file_descriptor(conn));
@@ -651,39 +654,77 @@ handle_events(void)
 	xcb_generic_event_t *ev;
 	xcb_window_t win;
 	struct win_props *p;
+	int xcb_desc = xcb_get_file_descriptor(conn);
+	fd_set descs;
 
 	/* to receive window creation notifications */
 	wm_reg_event(scrn->root, XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY);
 	xcb_flush(conn);
 
-	for (;;) {
-		ev = xcb_wait_for_event(conn);
-		win = -1;
-		if ((ev->response_type & ~0x80) == XCB_MAP_NOTIFY) {
-			xcb_map_notify_event_t *ec = (xcb_map_notify_event_t *)ev;
-			if (conf.catch_override_redirect || wm_is_listable(ec->window, 0)) {
-				win = ec->window;
-				/* we need to get notified for further property changes */
-				if (conf.exec_on_prop_change) {
-					wm_reg_event(ec->window, XCB_EVENT_MASK_PROPERTY_CHANGE);
+	state_run = 1;
+	state_reload = 0;
+	state_pause = 0;
+	while (state_run) {
+		FD_ZERO(&descs);
+		FD_SET(xcb_desc, &descs);
+
+		/*
+		 * We can't use xcb_wait_for_event because that means
+		 * that after receiving a signal to exit, the program will wait
+		 * for an X event and then it will exit.
+		 *
+		 * Instead, we are checking if there are events and then handle them.
+		 * select should just fail if we abort the execution of the program,
+		 * thus restarting the loop and then exiting from it because state_run
+		 * will be 0.
+		 */
+		if (select(xcb_desc + 1, &descs, NULL, NULL, NULL) > 0) {
+			while((ev = xcb_poll_for_event(conn)) != NULL) {
+				win = -1;
+
+				/* do work only if not paused */
+				if (state_pause == 0) {
+					if ((ev->response_type & ~0x80) == XCB_MAP_NOTIFY) {
+						xcb_map_notify_event_t *ec = (xcb_map_notify_event_t *)ev;
+
+						if (conf.catch_override_redirect || wm_is_listable(ec->window, 0)) {
+							win = ec->window;
+
+							/* we need to get notified for further property changes */
+							if (conf.exec_on_prop_change) {
+								wm_reg_event(ec->window, XCB_EVENT_MASK_PROPERTY_CHANGE);
+							}
+						}
+					} else if (conf.exec_on_prop_change && (ev->response_type & ~0x80) == XCB_PROPERTY_NOTIFY) {
+						xcb_property_notify_event_t *en = (xcb_property_notify_event_t *)ev;
+
+						if (conf.catch_override_redirect || wm_is_listable(en->window, 0))
+							win = en->window;
+					}
+
+					/* do the actual work. get props, find matches, execute commands */
+					if (win != -1 && state_pause == 0) {
+						p = get_props(win);
+						print_win_props(p);
+						set_environ(win);
+						execute_matching_block(p, block_list);
+						free_win_props(p);
+					}
+					free(ev);
+				}
+
+				if (state_reload) {
+					reload_config();
+					state_reload = 0;
+				}
+
+				if (xcb_connection_has_error(conn)) {
+					warnx("X server errored");
+					state_run = 0;
 				}
 			}
-		} else if (conf.exec_on_prop_change && (ev->response_type & ~0x80) == XCB_PROPERTY_NOTIFY) {
-			xcb_property_notify_event_t *en = (xcb_property_notify_event_t *)ev;
-			if (conf.catch_override_redirect || wm_is_listable(en->window, 0))
-				win = en->window;
-		}
-
-		if (win != -1) {
-			p = get_props(win);
-			print_win_props(p);
-			set_environ(win);
-			execute_matching_block(p, block_list);
-			free_win_props(p);
 		}
 	}
-
-	free(ev);
 }
 
 void
@@ -703,6 +744,42 @@ init_conf(void)
 	conf.shell = getenv("SHELL");
 	conf.catch_override_redirect = 0;
 	conf.exec_on_prop_change = 0;
+}
+
+/*
+ * Signal handler.
+ */
+void
+handle_sig(int sig)
+{
+	switch (sig) {
+		case SIGHUP:
+		case SIGINT:
+		case SIGTERM:
+			state_run = 0;
+			break;
+		case SIGUSR1:
+			state_reload = 1;
+			break;
+		case SIGUSR2:
+			state_pause = !state_pause;
+			break;
+	}
+}
+
+void
+reload_config(void)
+{
+	int i;
+	cleanup();
+	for (i = 0; i < no_of_configs; i++) {
+		yyin = fopen(configs[i], "r");
+		if (yyin == NULL)
+			err(1, "couldn't open file");
+		yyparse();
+		fclose(yyin);
+		yyrestart(yyin);
+	}
 }
 
 int
@@ -726,15 +803,10 @@ main(int argc, char **argv)
 	} ARGEND
 
 	/* the remaining arguments should be files */
-	while (*argv) {
-		yyin = fopen(*argv, "r");
-		if (yyin == NULL)
-			err(1, "couldn't open file");
-		yyparse();
-		fclose(yyin);
-		yyrestart(yyin);
-		argv++;
-	}
+	no_of_configs = argc;
+	DMSG("%d config files\n", no_of_configs);
+	configs = argv;
+	reload_config();
 
 	if (wm_init_xcb() == 0)
 		errx(1, "error while estabilishing connection to the X server");
@@ -757,6 +829,14 @@ main(int argc, char **argv)
 		}
 	}
 
+	/* don't let childrens become zombies. kill them for real (bwahaha) */
+	signal(SIGCHLD, SIG_IGN);
+	/* more signals */
+	signal(SIGINT, handle_sig);
+	signal(SIGHUP, handle_sig);
+	signal(SIGTERM, handle_sig);
+	signal(SIGUSR1, handle_sig);
+	signal(SIGUSR2, handle_sig);
 	register_events();
 	handle_events();
 	wm_kill_xcb();
