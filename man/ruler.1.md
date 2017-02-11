@@ -18,6 +18,9 @@ specific windows, called *rules*.
 * `-i`:
 	Ignore case in rule descriptors.
 
+* `-m`:
+	Apply rules when windows are mapped.
+
 * `-o`:
 	Apply rules on windows with *override_redirect* set, like panels and docks.
 
@@ -29,19 +32,25 @@ specific windows, called *rules*.
 
 ## BEHAVIOR
 
-`ruler` is a daemon that listens to X window events and applies a set of rules
-on windows that match them. A rule is made from two parts: a descriptor, that is
-a set of properties that must match with the properties of a window, and a
+`ruler` is a program that listens to X window events and applies a set of rules
+on windows that match them. A rule is made from two parts: a list of descriptors and a
 command, that is piped to an interpreter (`$SHELL` by default).
 
+A descriptors is a criterion - regular expression pair. The criterion defines the property to
+be matched.
+
 `ruler` reads its configuration file from `$XDG_CONFIG_HOME/ruler/rulerrc` by
-default, or from the command line if specified.
+default, or from the command line if specified. If `$XDG_CONFIG_HOME` is not
+defined, `$HOME/.config/ruler/rulerrc` is used.
 
 If `ruler` receives `SIGUSR1` or `SIGUSR2`, it will reload the specified
-configuration files or pause rule interpreting respectively.
+configuration files or pause rule detection respectively.
 
-Commands are executed by piping to the interpreter. (like `echo "COMMAND" |
+Commands are executed by piping them to the interpreter. (like `echo "COMMAND" |
 		$SHELL`). The chosen shell is by default `$SHELL`.
+
+Rules are executed after a window is created. This behavior can be changed with
+the `-m` and `-p` flags.
 
 ## CONFIGURATION
 
@@ -53,7 +62,7 @@ Each line of the configuration file is interpreted like so:
 
 * Else, it's a descriptor.
 
-A descriptor - command pair is called a *block*. Blocks can have newlines
+A descriptor list - command pair is called a *rule*. Rules can have newlines
 between them.
 
 Syntax:
@@ -113,7 +122,7 @@ name=".*"
 
 ## AUTHOR
 
-Tudor Roman <tudurom at gmail dot com>
+Tudor Roman `<tudurom at gmail dot com>`
 
 ## SEE ALSO
 

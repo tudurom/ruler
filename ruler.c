@@ -1,5 +1,6 @@
 #include <ctype.h>
 #include <err.h>
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -14,12 +15,14 @@
 #include <wm.h>
 
 #include "arg.h"
+#include "asprintf.h"
 #include "ruler.h"
 
 extern FILE * yyin;
 
 struct list *last_d = NULL;
 struct list *block_list = NULL;
+struct list *win_list = NULL;
 
 command_t last_c;
 extern char **environ;
@@ -37,11 +40,13 @@ xcb_connection_t *conn;
 xcb_screen_t *scrn;
 xcb_ewmh_connection_t *ewmh;
 
+xcb_atom_t allowed_atoms[NR_ATOMS];
+
 void
-print_usage(const char *program_name)
+print_usage(const char *program_name, int exit_value)
 {
 	fprintf(stderr, "Usage: %s [-hiops] filename [filename...]\n", program_name);
-	exit(1);
+	exit(exit_value);
 }
 
 char *
@@ -156,6 +161,29 @@ list_add(struct list **list, void *n)
 	}
 
 	*list = to_alloc;
+}
+
+/*
+ * Find node and delete it if it exists.
+ */
+void
+list_delete(struct list **list, struct list *item)
+{
+	struct list *prev;
+
+	if (*list == NULL || item == NULL)
+		return;
+
+	prev = *list;
+	while (prev != NULL && prev->next != item)
+		prev = prev->next;
+
+	if (prev != NULL)
+		prev->next = item->next;
+	if (item == *list)
+		*list = item->next;
+	free(item->n);
+	free(item);
 }
 
 /*
@@ -304,6 +332,19 @@ get_atom(const char *name)
 }
 
 /*
+ * Populate the list of allowed atoms.
+ */
+void
+populate_allowed_atoms(void)
+{
+	int i;
+
+	for (i = 0; i < NR_ATOMS; i++) {
+		allowed_atoms[i] = get_atom(atom_names[i]);
+	}
+}
+
+/*
  * Convert window type atom to string form.
  */
 char *
@@ -428,7 +469,7 @@ get_props(xcb_window_t win)
 	p->name = get_string_prop(win, ewmh->_NET_WM_NAME, 1);
 	if (p->name[0] == '\0') {
 		free(p->name);
-		p->name = get_string_prop(win, XCB_ATOM_WM_NAME, 0);
+		p->name = get_string_prop(win, allowed_atoms[ATOM_WM_NAME], 0);
 	}
 
 	/* WM_WINDOW_ROLE */
@@ -469,7 +510,7 @@ match_props(struct win_props *p, struct list *l)
 			status = regexec(d->reg, to_match, 0, NULL, 0);
 		else
 			status = 1;
-		DMSG("match %s (%s): %d\n", to_match, criterion_to_string(d->criterion), status);
+		DMSG("match \"%s\" (%s): %d\n", to_match, criterion_to_string(d->criterion), status);
 		matched += (status == 0) * 1;
 
 		node = node->next;
@@ -687,8 +728,10 @@ handle_events(void)
 					if ((ev->response_type & ~0x80) == XCB_MAP_NOTIFY) {
 						xcb_map_notify_event_t *ec = (xcb_map_notify_event_t *)ev;
 
-						if (conf.catch_override_redirect || wm_is_listable(ec->window, 0)) {
+						if ((conf.catch_override_redirect || wm_is_listable(ec->window, 0))
+								&& (conf.exec_on_map || is_new_window(ec->window))) {
 							win = ec->window;
+							DMSG("new window created: 0x%08x\n", win);
 
 							/* we need to get notified for further property changes */
 							if (conf.exec_on_prop_change) {
@@ -697,9 +740,25 @@ handle_events(void)
 						}
 					} else if (conf.exec_on_prop_change && (ev->response_type & ~0x80) == XCB_PROPERTY_NOTIFY) {
 						xcb_property_notify_event_t *en = (xcb_property_notify_event_t *)ev;
+						int pos = 0;
+						while (pos < NR_ATOMS && allowed_atoms[pos] != en->atom)
+							pos++;
 
-						if (conf.catch_override_redirect || wm_is_listable(en->window, 0))
+						if (pos < NR_ATOMS && (conf.catch_override_redirect || wm_is_listable(en->window, 0)))
 							win = en->window;
+					} else if ((ev->response_type & ~0x80) == XCB_DESTROY_NOTIFY) {
+						xcb_destroy_notify_event_t *ed = (xcb_destroy_notify_event_t *)ev;
+						struct list *l = win_list;
+
+						win = ed->window;
+						while (l != NULL && *(xcb_window_t *)l->n != win)
+							l = l->next;
+
+						if (l != NULL) {
+							list_delete(&win_list, l);
+							DMSG("removed window 0x%08x from list\n", win);
+						}
+						win = -1;
 					}
 
 					/* do the actual work. get props, find matches, execute commands */
@@ -710,20 +769,48 @@ handle_events(void)
 						execute_matching_block(p, block_list);
 						free_win_props(p);
 					}
-					free(ev);
 				}
 
-				if (state_reload) {
-					reload_config();
-					state_reload = 0;
-				}
-
-				if (xcb_connection_has_error(conn)) {
-					warnx("X server errored");
-					state_run = 0;
-				}
+				free(ev);
+				ev = NULL;
 			}
 		}
+
+		if (state_reload) {
+			reload_config();
+			state_reload = 0;
+		}
+
+		if (xcb_connection_has_error(conn)) {
+			warnx("X server errored");
+			state_run = 0;
+		}
+
+	}
+}
+
+/*
+ * Returns 1 if the windows has been created but not destroyed.
+ * 0 otherwise.
+ */
+int
+is_new_window(xcb_window_t win)
+{
+	struct list *l;
+	xcb_window_t *w;
+
+	l = win_list;
+	while (l != NULL && *(w = l->n) != win)
+		l = l->next;
+
+	if (l == NULL) {
+		w = malloc(sizeof(xcb_window_t));
+		*w = win;
+		list_add(&win_list, w);
+
+		return 1;
+	} else {
+		return 0;
 	}
 }
 
@@ -735,15 +822,23 @@ cleanup(void)
 		struct block *b = l->n;
 		block_free(b);
 	}
+	list_free(&block_list);
+
+	for (l = last_d; l != NULL; l = l->next) {
+		struct descriptor *d = l->n;
+		descriptor_free(d);
+	}
+	list_free(&last_d);
 }
 
 void
 init_conf(void)
 {
-	conf.case_insensitive = 0;
-	conf.shell = getenv("SHELL");
+	conf.case_insensitive        = 0;
+	conf.shell                   = getenv("SHELL");
 	conf.catch_override_redirect = 0;
-	conf.exec_on_prop_change = 0;
+	conf.exec_on_prop_change     = 0;
+	conf.exec_on_map             = 0;
 }
 
 /*
@@ -767,52 +862,76 @@ handle_sig(int sig)
 	}
 }
 
+/*
+ * Returns 0 if parsing succeeded.
+ */
+int
+parse_file(char *fp)
+{
+	yyin = fopen(fp, "r");
+	if (yyin == NULL)
+		return 1;
+	yyparse();
+	fclose(yyin);
+	yyrestart(yyin);
+
+	return 0;
+}
+
 void
 reload_config(void)
 {
 	int i;
+	char *xdg_home = getenv("XDG_CONFIG_HOME");
+	char *xdg_cfg_path;
+
+	if (xdg_home == NULL)
+		asprintf(&xdg_home, "%s/.config", getenv("HOME"));
+
+	asprintf(&xdg_cfg_path, "%s/ruler/rulerrc", xdg_home);
+	if (parse_file(xdg_cfg_path) == 1 && no_of_configs == 0)
+		errx(1, "couldn't open config file '%s' (%s). No other config files supplied, exiting", xdg_cfg_path, strerror(errno));
+	free(xdg_cfg_path);
+	free(xdg_home);
+
 	cleanup();
 	for (i = 0; i < no_of_configs; i++) {
-		yyin = fopen(configs[i], "r");
-		if (yyin == NULL)
-			err(1, "couldn't open file");
-		yyparse();
-		fclose(yyin);
-		yyrestart(yyin);
+		if (parse_file(configs[i]) != 0)
+			err(1, "couldn't open config file '%s'", configs[i]);
 	}
+
+	DMSG("configs reloaded\n");
 }
 
 int
 main(int argc, char **argv)
 {
-	if (argc == 1)
-		print_usage(argv[0]);
-
 	init_conf();
+
+	/* see arg.h */
 	ARGBEGIN {
 		case 'i':
 			conf.case_insensitive = 1; break;
 		case 's':
-			conf.shell = EARGF(print_usage(argv0)); break;
+			conf.shell = EARGF((
+						warnx("option 's' requires an argument"),
+						print_usage(argv0, 1)
+					)); break;
 		case 'o':
 			conf.catch_override_redirect = 1; break;
 		case 'p':
 			conf.exec_on_prop_change = 1; break;
+		case 'm':
+			conf.exec_on_map = 1; break;
 		case 'h':
-			print_usage(argv0);
+			print_usage(argv0, 0);
 	} ARGEND
 
 	/* the remaining arguments should be files */
 	no_of_configs = argc;
-	DMSG("%d config files\n", no_of_configs);
+	DMSG("%d extra config files\n", no_of_configs);
 	configs = argv;
 	reload_config();
-
-	if (wm_init_xcb() == 0)
-		errx(1, "error while estabilishing connection to the X server");
-	if (wm_get_screen() == 0)
-		errx(1, "couldn't get X screen");
-	init_ewmh();
 
 	if (_debug) {
 		struct list *l;
@@ -829,6 +948,12 @@ main(int argc, char **argv)
 		}
 	}
 
+	if (wm_init_xcb() == 0)
+		errx(1, "error while estabilishing connection to the X server");
+	if (wm_get_screen() == 0)
+		errx(1, "couldn't get X screen");
+	init_ewmh();
+
 	/* don't let childrens become zombies. kill them for real (bwahaha) */
 	signal(SIGCHLD, SIG_IGN);
 	/* more signals */
@@ -837,6 +962,8 @@ main(int argc, char **argv)
 	signal(SIGTERM, handle_sig);
 	signal(SIGUSR1, handle_sig);
 	signal(SIGUSR2, handle_sig);
+
+	populate_allowed_atoms();
 	register_events();
 	handle_events();
 	wm_kill_xcb();

@@ -23,6 +23,10 @@ Print usage and version information\.
 Ignore case in rule descriptors\.
 .
 .TP
+\fB\-m\fR
+Apply rules when windows are mapped\.
+.
+.TP
 \fB\-o\fR
 Apply rules on windows with \fIoverride_redirect\fR set, like panels and docks\.
 .
@@ -35,16 +39,22 @@ Apply rules when windows change their properties\.
 Execute rule commands with \fIshell\fR\.
 .
 .SH "BEHAVIOR"
-\fBruler\fR is a daemon that listens to X window events and applies a set of rules on windows that match them\. A rule is made from two parts: a descriptor, that is a set of properties that must match with the properties of a window, and a command, that is piped to an interpreter (\fB$SHELL\fR by default)\.
+\fBruler\fR is a program that listens to X window events and applies a set of rules on windows that match them\. A rule is made from two parts: a list of descriptors and a command, that is piped to an interpreter (\fB$SHELL\fR by default)\.
 .
 .P
-\fBruler\fR reads its configuration file from \fB$XDG_CONFIG_HOME/ruler/rulerrc\fR by default, or from the command line if specified\.
+A descriptors is a criterion \- regular expression pair\. The criterion defines the property to be matched\.
 .
 .P
-If \fBruler\fR receives \fBSIGUSR1\fR or \fBSIGUSR2\fR, it will reload the specified configuration files or pause rule interpreting respectively\.
+\fBruler\fR reads its configuration file from \fB$XDG_CONFIG_HOME/ruler/rulerrc\fR by default, or from the command line if specified\. If \fB$XDG_CONFIG_HOME\fR is not defined, \fB$HOME/\.config/ruler/rulerrc\fR is used\.
 .
 .P
-Commands are executed by piping to the interpreter\. (like \fBecho "COMMAND" | $SHELL\fR)\. The chosen shell is by default \fB$SHELL\fR\.
+If \fBruler\fR receives \fBSIGUSR1\fR or \fBSIGUSR2\fR, it will reload the specified configuration files or pause rule detection respectively\.
+.
+.P
+Commands are executed by piping them to the interpreter\. (like \fBecho "COMMAND" | $SHELL\fR)\. The chosen shell is by default \fB$SHELL\fR\.
+.
+.P
+Rules are executed after a window is created\. This behavior can be changed with the \fB\-m\fR and \fB\-p\fR flags\.
 .
 .SH "CONFIGURATION"
 Each line of the configuration file is interpreted like so:
@@ -61,7 +71,7 @@ Else, it\'s a descriptor\.
 .IP "" 0
 .
 .P
-A descriptor \- command pair is called a \fIblock\fR\. Blocks can have newlines between them\.
+A descriptor list \- command pair is called a \fIrule\fR\. Rules can have newlines between them\.
 .
 .P
 Syntax:
@@ -134,7 +144,7 @@ name="\.*"
 .fi
 .
 .SH "AUTHOR"
-Tudor Roman \fItudurom at gmail dot com\fR
+Tudor Roman \fB<tudurom at gmail dot com>\fR
 .
 .SH "SEE ALSO"
 wmutils(1), regex(7)

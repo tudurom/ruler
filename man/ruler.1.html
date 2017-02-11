@@ -89,6 +89,7 @@ specific windows, called <em>rules</em>.</p>
 <dl>
 <dt class="flush"><code>-h</code></dt><dd><p>  Print usage and version information.</p></dd>
 <dt class="flush"><code>-i</code></dt><dd><p>  Ignore case in rule descriptors.</p></dd>
+<dt class="flush"><code>-m</code></dt><dd><p>  Apply rules when windows are mapped.</p></dd>
 <dt class="flush"><code>-o</code></dt><dd><p>  Apply rules on windows with <em>override_redirect</em> set, like panels and docks.</p></dd>
 <dt class="flush"><code>-p</code></dt><dd><p>  Apply rules when windows change their properties.</p></dd>
 <dt><code>-s</code> <var>shell</var></dt><dd><p>  Execute rule commands with <var>shell</var>.</p></dd>
@@ -97,19 +98,25 @@ specific windows, called <em>rules</em>.</p>
 
 <h2 id="BEHAVIOR">BEHAVIOR</h2>
 
-<p><code>ruler</code> is a daemon that listens to X window events and applies a set of rules
-on windows that match them. A rule is made from two parts: a descriptor, that is
-a set of properties that must match with the properties of a window, and a
+<p><code>ruler</code> is a program that listens to X window events and applies a set of rules
+on windows that match them. A rule is made from two parts: a list of descriptors and a
 command, that is piped to an interpreter (<code>$SHELL</code> by default).</p>
 
+<p>A descriptors is a criterion - regular expression pair. The criterion defines the property to
+be matched.</p>
+
 <p><code>ruler</code> reads its configuration file from <code>$XDG_CONFIG_HOME/ruler/rulerrc</code> by
-default, or from the command line if specified.</p>
+default, or from the command line if specified. If <code>$XDG_CONFIG_HOME</code> is not
+defined, <code>$HOME/.config/ruler/rulerrc</code> is used.</p>
 
 <p>If <code>ruler</code> receives <code>SIGUSR1</code> or <code>SIGUSR2</code>, it will reload the specified
-configuration files or pause rule interpreting respectively.</p>
+configuration files or pause rule detection respectively.</p>
 
-<p>Commands are executed by piping to the interpreter. (like <code>echo "COMMAND" |
+<p>Commands are executed by piping them to the interpreter. (like <code>echo "COMMAND" |
         $SHELL</code>). The chosen shell is by default <code>$SHELL</code>.</p>
+
+<p>Rules are executed after a window is created. This behavior can be changed with
+the <code>-m</code> and <code>-p</code> flags.</p>
 
 <h2 id="CONFIGURATION">CONFIGURATION</h2>
 
@@ -122,7 +129,7 @@ configuration files or pause rule interpreting respectively.</p>
 </ul>
 
 
-<p>A descriptor - command pair is called a <em>block</em>. Blocks can have newlines
+<p>A descriptor list - command pair is called a <em>rule</em>. Rules can have newlines
 between them.</p>
 
 <p>Syntax:</p>
@@ -179,7 +186,7 @@ name=".*"
 
 <h2 id="AUTHOR">AUTHOR</h2>
 
-<p>Tudor Roman <var>tudurom at gmail dot com</var></p>
+<p>Tudor Roman <code>&lt;tudurom at gmail dot com></code></p>
 
 <h2 id="SEE-ALSO">SEE ALSO</h2>
 
