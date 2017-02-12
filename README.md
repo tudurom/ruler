@@ -29,3 +29,26 @@ role="browser"
 instance=".*e.*"
 	echo "warning!" > /tmp/notifyd.fifo
 ```
+
+Dependencies
+------------
+
+* [xcb](https://xcb.freedesktop.org/)
+* [xcb-util-wm](https://www.archlinux.org/packages/extra/x86_64/xcb-util-wm/) -
+I'm currently working on removing this dependency
+* [libwm](https://github.com/wmutils/libwm)
+
+Build time dependencies:
+
+* a yacc implementation (GNU bison, OpenBSD yacc etc.)
+* a lex implementation (flex)
+
+Building and installing
+-----------------------
+
+```
+$ make
+# make install
+```
+
+The `Makefile` respects the `DESTDIR` and `PREFIX` environment variables.
