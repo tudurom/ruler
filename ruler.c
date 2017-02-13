@@ -885,6 +885,7 @@ reload_config(void)
 	char *xdg_home = getenv("XDG_CONFIG_HOME");
 	char *xdg_cfg_path;
 
+	cleanup();
 	if (xdg_home == NULL)
 		asprintf(&xdg_home, "%s/.config", getenv("HOME"));
 
@@ -894,7 +895,6 @@ reload_config(void)
 	free(xdg_cfg_path);
 	free(xdg_home);
 
-	cleanup();
 	for (i = 0; i < no_of_configs; i++) {
 		if (parse_file(configs[i]) != 0)
 			err(1, "couldn't open config file '%s'", configs[i]);

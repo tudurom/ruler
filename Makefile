@@ -19,7 +19,7 @@ install: all
 	cd ./man; $(MAKE) install
 
 uninstall:
-	rm -f $(NAME) $(DESTDIR)$(PREFIX)/bin/$(NAME)
+	rm -f $(DESTDIR)$(PREFIX)/bin/$(NAME)
 	cd ./man; $(MAKE) uninstall
 
 clean:

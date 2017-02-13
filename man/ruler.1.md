@@ -36,7 +36,7 @@ specific windows, called *rules*.
 on windows that match them. A rule is made from two parts: a list of descriptors and a
 command, that is piped to an interpreter (`$SHELL` by default).
 
-A descriptors is a criterion - regular expression pair. The criterion defines the property to
+A descriptor is a criterion - regular expression pair. The criterion defines the property to
 be matched.
 
 `ruler` reads its configuration file from `$XDG_CONFIG_HOME/ruler/rulerrc` by

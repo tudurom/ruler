@@ -2,6 +2,7 @@ include ../config.mk
 
 MAN = ruler.1
 MANUAL = "Ruler Manual"
+ORG = "Ruler"
 
 .POSIX:
 
@@ -10,7 +11,7 @@ all: build
 build: $(MAN)
 
 %.1: *.1.md
-	ronn --manual=$(MANUAL) $@.md
+	ronn --manual=$(MANUAL) --organization=$(ORG) $@.md
 
 clean:
 	rm *.1

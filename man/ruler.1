@@ -1,7 +1,7 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "RULER" "1" "February 2017" "" "Ruler Manual"
+.TH "RULER" "1" "February 2017" "Ruler" "Ruler Manual"
 .
 .SH "NAME"
 \fBruler\fR \- A window rule daemon
@@ -42,7 +42,7 @@ Execute rule commands with \fIshell\fR\.
 \fBruler\fR is a program that listens to X window events and applies a set of rules on windows that match them\. A rule is made from two parts: a list of descriptors and a command, that is piped to an interpreter (\fB$SHELL\fR by default)\.
 .
 .P
-A descriptors is a criterion \- regular expression pair\. The criterion defines the property to be matched\.
+A descriptor is a criterion \- regular expression pair\. The criterion defines the property to be matched\.
 .
 .P
 \fBruler\fR reads its configuration file from \fB$XDG_CONFIG_HOME/ruler/rulerrc\fR by default, or from the command line if specified\. If \fB$XDG_CONFIG_HOME\fR is not defined, \fB$HOME/\.config/ruler/rulerrc\fR is used\.
