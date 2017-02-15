@@ -12,8 +12,8 @@ window.
 Descriptors can be defined as regular expressions (POSIX Extended Regular
 Expressions) to avoid code repetition.
 
-Commands are executed in parallel by default. If a command is prefixed with a
-semicolon, it will be run asynchronously.
+Commands are executed asynchronously by default. If a command is prefixed with a
+semicolon, it will be run synchronously.
 
 For more information, see the included manual page (`ruler(1)`).
 
