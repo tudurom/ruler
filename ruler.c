@@ -45,7 +45,7 @@ xcb_atom_t allowed_atoms[NR_ATOMS];
 void
 print_usage(const char *program_name, int exit_value)
 {
-	fprintf(stderr, "Usage: %s [-hiops] filename [filename...]\n", program_name);
+	fprintf(stderr, "Usage: %s [-himopv] [-s shell] filename [filename...]\n", program_name);
 	exit(exit_value);
 }
 

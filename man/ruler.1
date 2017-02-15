@@ -7,7 +7,7 @@
 \fBruler\fR \- A window rule daemon
 .
 .SH "SYNOPSIS"
-\fBruler\fR [\-hiop] [\-s \fIshell\fR] \fIfilename\fR [\fIfilename\fR\.\.\.]
+\fBruler\fR [\-himopv] [\-s \fIshell\fR] \fIfilename\fR [\fIfilename\fR\.\.\.]
 .
 .SH "DESCRIPTION"
 \fBruler\fR is an X daemon that executes arbitrary commands for windows with specific windows, called \fIrules\fR\.
@@ -16,7 +16,7 @@
 .
 .TP
 \fB\-h\fR
-Print usage and version information\.
+Print usage\.
 .
 .TP
 \fB\-i\fR
@@ -146,6 +146,9 @@ name="\.*"
         echo "How are you?"
 .
 .fi
+.
+.SH "ENVIRONMENT"
+\fBruler\fR acts on the X display specified by the \fBDISPLAY\fR variable and executes commands through the shell specified by \fBSHELL\fR\.
 .
 .SH "AUTHOR"
 Tudor Roman \fB<tudurom at gmail dot com>\fR

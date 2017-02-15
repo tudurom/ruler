@@ -60,6 +60,7 @@
     <a href="#BEHAVIOR">BEHAVIOR</a>
     <a href="#CONFIGURATION">CONFIGURATION</a>
     <a href="#EXAMPLE">EXAMPLE</a>
+    <a href="#ENVIRONMENT">ENVIRONMENT</a>
     <a href="#AUTHOR">AUTHOR</a>
     <a href="#SEE-ALSO">SEE ALSO</a>
   </div>
@@ -77,7 +78,7 @@
 
 <h2 id="SYNOPSIS">SYNOPSIS</h2>
 
-<p><code>ruler</code> [-hiop] [-s <var>shell</var>] <var>filename</var> [<var>filename</var>...]</p>
+<p><code>ruler</code> [-himopv] [-s <var>shell</var>] <var>filename</var> [<var>filename</var>...]</p>
 
 <h2 id="DESCRIPTION">DESCRIPTION</h2>
 
@@ -87,7 +88,7 @@ specific windows, called <em>rules</em>.</p>
 <h2 id="OPTIONS">OPTIONS</h2>
 
 <dl>
-<dt class="flush"><code>-h</code></dt><dd><p>  Print usage and version information.</p></dd>
+<dt class="flush"><code>-h</code></dt><dd><p>  Print usage.</p></dd>
 <dt class="flush"><code>-i</code></dt><dd><p>  Ignore case in rule descriptors.</p></dd>
 <dt class="flush"><code>-m</code></dt><dd><p>  Apply rules when windows are mapped.</p></dd>
 <dt class="flush"><code>-o</code></dt><dd><p>  Apply rules on windows with <em>override_redirect</em> set, like panels and docks.</p></dd>
@@ -184,6 +185,11 @@ name=".*"
     ;echo "Hello!";\
         echo "How are you?"
 </code></pre>
+
+<h2 id="ENVIRONMENT">ENVIRONMENT</h2>
+
+<p><code>ruler</code> acts on the X display specified by the <code>DISPLAY</code> variable and executes
+commands through the shell specified by <code>SHELL</code>.</p>
 
 <h2 id="AUTHOR">AUTHOR</h2>
 

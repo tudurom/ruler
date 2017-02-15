@@ -3,7 +3,7 @@ ruler(1) -- A window rule daemon
 
 ## SYNOPSIS
 
-`ruler` [-hiop] [-s <shell>] <filename> [<filename>...]
+`ruler` [-himopv] [-s <shell>] <filename> [<filename>...]
 
 ## DESCRIPTION
 
@@ -13,7 +13,7 @@ specific windows, called *rules*.
 ## OPTIONS
 
 * `-h`:
-	Print usage and version information.
+	Print usage.
 
 * `-i`:
 	Ignore case in rule descriptors.
@@ -122,6 +122,11 @@ name=".*"
 	;echo "Hello!";\
 		echo "How are you?"
 ```
+
+## ENVIRONMENT
+
+`ruler` acts on the X display specified by the `DISPLAY` variable and executes
+commands through the shell specified by `SHELL`.
 
 ## AUTHOR
 
