@@ -30,6 +30,9 @@ specific windows, called *rules*.
 * `-s` <shell>:
 	Execute rule commands with <shell>.
 
+* `-v`:
+	Print version information.
+
 ## BEHAVIOR
 
 `ruler` is a program that listens to X window events and applies a set of rules
@@ -86,7 +89,7 @@ If `COMMAND` is preceded by a `;`, the command will be run synchronously,
 otherwise it will be run asynchronously.
 
 `COMMAND` will be executed by the shell set in the `SHELL` environment
-variable. The window id will be set in the `RULER_ID` environment variable.
+variable. The window id will be set in the `RULER_WID` environment variable.
 
 `CRITERION` can be:
 

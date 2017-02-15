@@ -9,6 +9,14 @@
 #define ENV_VARIABLE "RULER_WID"
 #define DEBUG 0
 
+#ifndef NAME
+#define NAME "ruler"
+#endif
+
+#ifndef VERSION
+#define VERSION "-1"
+#endif
+
 enum {
 	ATOM_WM_NAME,
 	ATOM_WM_CLASS,
@@ -77,6 +85,7 @@ int yyparse(void);
 void yyrestart(FILE *);
 
 void print_usage(const char *, int);
+void print_version(void);
 char * strip_quotes(char *);
 
 struct descriptor * new_descriptor(char *, char *);

@@ -49,6 +49,14 @@ print_usage(const char *program_name, int exit_value)
 	exit(exit_value);
 }
 
+void print_version(void)
+{
+	fprintf(stderr, "%s %s\n", NAME, VERSION);
+	fprintf(stderr, "Copyright (c) 2017 Tudor Ioan Roman\n");
+	fprintf(stderr, "Released under the ISC License\n");
+	exit(0);
+}
+
 char *
 strip_quotes(char *str)
 {
@@ -924,7 +932,9 @@ main(int argc, char **argv)
 		case 'm':
 			conf.exec_on_map = 1; break;
 		case 'h':
-			print_usage(argv0, 0);
+			print_usage(argv0, 0); break;
+		case 'v':
+			print_version(); break;
 	} ARGEND
 
 	/* the remaining arguments should be files */

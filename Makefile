@@ -1,11 +1,14 @@
 include config.mk
 
+VERCMD ?= git describe 2> /dev/null
+
 NAME = ruler
+VERSION = $(shell $(VERCMD) || cat VERSION)
 
 all: $(NAME)
 
 $(NAME): ruler.c lex.yy.c y.tab.c
-	clang $^ $(CFLAGS) $(LDFLAGS) -o ruler
+	clang $^ $(CFLAGS) $(LDFLAGS) -DNAME=\"$(NAME)\" -DVERSION=\"$(VERSION)\" -o ruler
 
 %.tab.c %.tab.h: parser.y
 	yacc $<

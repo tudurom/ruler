@@ -93,6 +93,7 @@ specific windows, called <em>rules</em>.</p>
 <dt class="flush"><code>-o</code></dt><dd><p>  Apply rules on windows with <em>override_redirect</em> set, like panels and docks.</p></dd>
 <dt class="flush"><code>-p</code></dt><dd><p>  Apply rules when windows change their properties.</p></dd>
 <dt><code>-s</code> <var>shell</var></dt><dd><p>  Execute rule commands with <var>shell</var>.</p></dd>
+<dt class="flush"><code>-v</code></dt><dd><p>  Print version information.</p></dd>
 </dl>
 
 
@@ -152,7 +153,7 @@ can have multi-line commands this way.</p>
 otherwise it will be run asynchronously.</p>
 
 <p><code>COMMAND</code> will be executed by the shell set in the <code>SHELL</code> environment
-variable. The window id will be set in the <code>RULER_ID</code> environment variable.</p>
+variable. The window id will be set in the <code>RULER_WID</code> environment variable.</p>
 
 <p><code>CRITERION</code> can be:</p>
 

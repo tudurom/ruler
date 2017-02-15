@@ -1,7 +1,7 @@
 # with
-# 		comment #wew
+# 		comment #test
 role="browser"
-	wtf "$WID" && waitron group_add_window 2
+	wtf "$RULER_WID" && waitron group_add_window 2
 
 # match all
 name=".*"

@@ -38,6 +38,10 @@ Apply rules when windows change their properties\.
 \fB\-s\fR \fIshell\fR
 Execute rule commands with \fIshell\fR\.
 .
+.TP
+\fB\-v\fR
+Print version information\.
+.
 .SH "BEHAVIOR"
 \fBruler\fR is a program that listens to X window events and applies a set of rules on windows that match them\. A rule is made from two parts: a list of descriptors and a command, that is piped to an interpreter (\fB$SHELL\fR by default)\.
 .
@@ -103,7 +107,7 @@ CRITERION_i := class | instance | type | name | role
 If \fBCOMMAND\fR is preceded by a \fB;\fR, the command will be run synchronously, otherwise it will be run asynchronously\.
 .
 .P
-\fBCOMMAND\fR will be executed by the shell set in the \fBSHELL\fR environment variable\. The window id will be set in the \fBRULER_ID\fR environment variable\.
+\fBCOMMAND\fR will be executed by the shell set in the \fBSHELL\fR environment variable\. The window id will be set in the \fBRULER_WID\fR environment variable\.
 .
 .P
 \fBCRITERION\fR can be:
