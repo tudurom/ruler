@@ -4,17 +4,19 @@ VERCMD ?= git describe 2> /dev/null
 
 NAME = ruler
 VERSION = $(shell $(VERCMD) || cat VERSION)
+YACC ?= yacc
+LEX ?= lex
 
 all: $(NAME)
 
 $(NAME): ruler.c lex.yy.c y.tab.c
-	clang $^ $(CFLAGS) $(LDFLAGS) -DNAME=\"$(NAME)\" -DVERSION=\"$(VERSION)\" -o ruler
+	$(CC) $^ $(CFLAGS) $(LDFLAGS) -DNAME=\"$(NAME)\" -DVERSION=\"$(VERSION)\" -o ruler
 
 %.tab.c %.tab.h: parser.y
-	yacc $<
+	$(YACC) $<
 
 lex.yy.c: scanner.l
-	lex $<
+	$(LEX) $<
 
 install: all
 	mkdir -p $(DESTDIR)$(PREFIX)/bin
