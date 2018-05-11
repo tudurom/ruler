@@ -901,7 +901,6 @@ reload_config(void)
 	if (parse_file(xdg_cfg_path) == 1 && no_of_configs == 0)
 		errx(1, "couldn't open config file '%s' (%s). No other config files supplied, exiting", xdg_cfg_path, strerror(errno));
 	free(xdg_cfg_path);
-	free(xdg_home);
 
 	for (i = 0; i < no_of_configs; i++) {
 		if (parse_file(configs[i]) != 0)
