@@ -10,6 +10,7 @@
 #include <sys/wait.h>
 #include <sys/select.h>
 #include <xcb/xcb.h>
+#include <xcb/randr.h>
 #include <xcb/xcb_icccm.h>
 #include <xcb/xcb_ewmh.h>
 #include <wm.h>
@@ -681,7 +682,7 @@ register_events(void)
 	len = wm_get_windows(scrn->root, &windows);
 	for (i = 0; i < len; i++) {
 		if (wm_is_listable(windows[i], 0))
-			wm_reg_event(windows[i], XCB_EVENT_MASK_PROPERTY_CHANGE);
+			wm_reg_window_event(windows[i], XCB_EVENT_MASK_PROPERTY_CHANGE);
 	}
 	free(windows);
 }
@@ -707,7 +708,7 @@ handle_events(void)
 	fd_set descs;
 
 	/* to receive window creation notifications */
-	wm_reg_event(scrn->root, XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY);
+	wm_reg_window_event(scrn->root, XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY);
 	xcb_flush(conn);
 
 	state_run = 1;
@@ -743,7 +744,7 @@ handle_events(void)
 
 							/* we need to get notified for further property changes */
 							if (conf.exec_on_prop_change) {
-								wm_reg_event(ec->window, XCB_EVENT_MASK_PROPERTY_CHANGE);
+								wm_reg_window_event(ec->window, XCB_EVENT_MASK_PROPERTY_CHANGE);
 							}
 						}
 					} else if (conf.exec_on_prop_change && (ev->response_type & ~0x80) == XCB_PROPERTY_NOTIFY) {
@@ -958,9 +959,9 @@ main(int argc, char **argv)
 		}
 	}
 
-	if (wm_init_xcb() == 0)
+	if (wm_init_xcb() == -1)
 		errx(1, "error while estabilishing connection to the X server");
-	if (wm_get_screen() == 0)
+	if (wm_get_screen() == -1)
 		errx(1, "couldn't get X screen");
 	init_ewmh();
 
