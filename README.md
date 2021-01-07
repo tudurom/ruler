@@ -34,8 +34,7 @@ Dependencies
 ------------
 
 * [xcb](https://xcb.freedesktop.org/)
-* [xcb-util-wm](https://www.archlinux.org/packages/extra/x86_64/xcb-util-wm/) -
-I'm currently working on removing this dependency
+* [xcb-util-wm](https://www.archlinux.org/packages/extra/x86_64/xcb-util-wm/)
 * [libwm](https://github.com/wmutils/libwm)
 
 Build time dependencies:
